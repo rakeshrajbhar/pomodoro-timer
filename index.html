@@ -1,0 +1,75 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pomodoro Focus Timer</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon-192.png" />
+  <meta name="theme-color" content="#007aff"/>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 40px; }
+    #timer { font-size: 5em; margin: 20px 0; }
+    button { padding: 10px 20px; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h1>Pomodoro Timer</h1>
+  <div id="status">Ready</div>
+  <div id="timer">25:00</div>
+  <button id="startPauseBtn" onclick="toggleStartPause()">Start</button>
+  <button id="stopBtn" onclick="stopTimer()" style="display:none;">Stop</button>
+  <div>🍅 Pomodoros Completed: <span id="count">0</span></div>
+  <audio id="alertSound" src="https://www.soundjay.com/buttons/sounds/beep-07.mp3"></audio>
+  <script>
+    let work = 1500, breakT = 300, longBreak = 900;
+    let count = localStorage.getItem('pomodoroCount') || 0;
+    let isWork = true, running = false, timeLeft = work, timer;
+    const timerDisp = document.getElementById("timer"), status = document.getElementById("status"),
+          countDisp = document.getElementById("count"), startBtn = document.getElementById("startPauseBtn"),
+          stopBtn = document.getElementById("stopBtn"), alertSound = document.getElementById("alertSound");
+    countDisp.textContent = count;
+    function toggleStartPause() {
+      if (!running) {
+        running = true; startBtn.textContent = "Pause";
+        stopBtn.style.display = "inline-block";
+        timer = setInterval(() => {
+          if (--timeLeft <= 0) {
+            alertSound.play();
+            clearInterval(timer);
+            if (isWork) {
+              count++; localStorage.setItem('pomodoroCount', count);
+              countDisp.textContent = count;
+              isWork = false;
+              timeLeft = count % 4 === 0 ? longBreak : breakT;
+            } else {
+              isWork = true; timeLeft = work;
+            }
+            toggleStartPause(); // auto-start next
+          }
+          updateDisplay();
+        }, 1000);
+      } else {
+        running = false; clearInterval(timer);
+        startBtn.textContent = "Resume";
+      }
+    }
+    function stopTimer() {
+      clearInterval(timer); timeLeft = work; running = false; isWork = true;
+      updateDisplay(); status.textContent = "Ready";
+      startBtn.textContent = "Start"; stopBtn.style.display = "none";
+    }
+    function updateDisplay() {
+      let m = String(Math.floor(timeLeft / 60)).padStart(2, '0'),
+          s = String(timeLeft % 60).padStart(2, '0');
+      timerDisp.textContent = `${m}:${s}`;
+      status.textContent = isWork ? "Focus Time" : "Break Time";
+    }
+    updateDisplay();
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
+</body>
+</html>
